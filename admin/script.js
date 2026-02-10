@@ -190,6 +190,57 @@
             });
         });
         
+        // ==================== RICH RESULTS ====================
+
+        $('#btn-rich-results-test').on('click', function() {
+            var $btn = $(this);
+            var originalText = $btn.html();
+            var $result = $('#rich-results-test-result');
+
+            $btn.prop('disabled', true).html(
+                '<span class="dashicons dashicons-yes-alt"></span> Test in corso...' +
+                '<span class="infobit-loading"></span>'
+            );
+            $result.hide();
+
+            $.post(osgAdmin.ajaxurl, {
+                action: 'osg_rich_results_test',
+                nonce: osgAdmin.nonce
+            }, function(response) {
+                if (response.success && response.data) {
+                    var html = '<div class="rich-results-test-output" style="margin-top:10px;">';
+                    var allPass = response.data.success;
+
+                    html += '<p style="font-weight:bold;color:' + (allPass ? '#00a32a' : '#d63638') + ';">';
+                    html += allPass ? '&#10003; Tutti i test superati!' : '&#10007; Alcuni test non superati';
+                    html += '</p>';
+
+                    html += '<table class="widefat striped" style="max-width:700px;">';
+                    html += '<thead><tr><th>Test</th><th>Esito</th><th>Dettaglio</th></tr></thead><tbody>';
+
+                    var results = response.data.results || [];
+                    for (var i = 0; i < results.length; i++) {
+                        var r = results[i];
+                        var icon = r.pass ? '<span style="color:#00a32a;">&#10003;</span>' : '<span style="color:#d63638;">&#10007;</span>';
+                        html += '<tr>';
+                        html += '<td>' + escHtml(r.name) + '</td>';
+                        html += '<td>' + icon + '</td>';
+                        html += '<td><small>' + escHtml(r.detail) + '</small></td>';
+                        html += '</tr>';
+                    }
+
+                    html += '</tbody></table></div>';
+                    $result.html(html).fadeIn();
+                } else {
+                    $result.html('<p style="color:#d63638;">Errore durante il test: ' + escHtml(response.data || 'sconosciuto') + '</p>').fadeIn();
+                }
+            }).fail(function(xhr, status, error) {
+                $result.html('<p style="color:#d63638;">Errore di connessione: ' + escHtml(error) + '</p>').fadeIn();
+            }).always(function() {
+                $btn.prop('disabled', false).html(originalText);
+            });
+        });
+
         // ==================== HELPER ====================
         
         function showResult(selector, type, message) {
@@ -204,6 +255,11 @@
             $(selector).fadeOut();
         }
         
+        function escHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
         // Click-to-copy sugli URL sitemap
         $('.infobit-sitemap-links code').css('cursor', 'pointer').on('click', function() {
             var text = $(this).text();

@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Open Sitemap Generator
  * Plugin URI: https://github.com/infobitcomputer/open-sitemap-generator
- * Description: Genera sitemap XML dinamiche con paginazione automatica, IndexNow a coda temporizzata e notifica Google/Bing/Yandex. Ottimizzato per WooCommerce con decine di migliaia di prodotti.
- * Version: 1.3.0
+ * Description: Genera sitemap XML dinamiche con paginazione automatica, IndexNow a coda temporizzata, Google Rich Results per WooCommerce e notifica Google/Bing/Yandex. Ottimizzato per WooCommerce con decine di migliaia di prodotti.
+ * Version: 1.4.0
  * Author: Infobit snc
  * Author URI: https://infobitcomputer.it
  * License: GPL v2 or later
@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('OSG_VERSION', '1.3.0');
+define('OSG_VERSION', '1.4.0');
 define('OSG_PATH', plugin_dir_path(__FILE__));
 define('OSG_URL', plugin_dir_url(__FILE__));
 define('OSG_BASENAME', plugin_basename(__FILE__));
@@ -665,3 +665,6 @@ add_action('plugins_loaded', function() {
 
 // Carica IndexNow
 require_once OSG_PATH . 'includes/class-indexnow.php';
+
+// Carica Rich Results (Schema Enhancement per Google)
+require_once OSG_PATH . 'includes/class-rich-results.php';

@@ -16,6 +16,17 @@ $indexnow_stats = $indexnow->get_stats();
 $indexnow_options = $indexnow->get_options();
 $indexnow_log = $indexnow->get_log(10);
 $indexnow_queue = $indexnow->get_queue();
+
+// Rich Results
+$rich_results = OSG_Rich_Results::get_instance();
+$rich_results_stats = $rich_results->get_stats();
+$rich_results_options = $rich_results->get_options();
+
+$return_fees_choices = array(
+    'https://schema.org/FreeReturn'                => 'Reso gratuito',
+    'https://schema.org/ReturnShippingFees'        => 'Spese di spedizione a carico del cliente',
+    'https://schema.org/ReturnFeesCustomerResponsibility' => 'Spese reso a carico del cliente',
+);
 ?>
 
 <div class="wrap osg-wrap">
@@ -329,6 +340,71 @@ $indexnow_queue = $indexnow->get_queue();
     </div>
     <!-- ==================== FINE INDEXNOW ==================== -->
     
+    <!-- ==================== SEZIONE RICH RESULTS ==================== -->
+    <div class="infobit-settings-section rich-results-section">
+        <h2>&#11088; Rich Results - Dati Strutturati Prodotti</h2>
+
+        <div class="google-info-banner">
+            <p><strong>Google Rich Results</strong> migliora la visibilita dei prodotti WooCommerce nei risultati di ricerca
+            aggiungendo informazioni su spedizione, politica reso, recensioni e venditore direttamente nello schema JSON-LD.</p>
+            <?php if (!class_exists('WooCommerce')): ?>
+            <p style="color:#d63638;"><strong>Attenzione:</strong> WooCommerce non e attivo. Il modulo Rich Results richiede WooCommerce per funzionare.</p>
+            <?php endif; ?>
+        </div>
+
+        <!-- Stato Rich Results -->
+        <div class="indexnow-status">
+            <h3>Stato</h3>
+            <table class="form-table">
+                <tr>
+                    <th>Modulo</th>
+                    <td>
+                        <?php if ($rich_results_stats['active']): ?>
+                            <span style="color:#00a32a;font-weight:bold;">&#10003; Attivo</span>
+                        <?php elseif ($rich_results_stats['enabled']): ?>
+                            <span style="color:#dba617;font-weight:bold;">&#9888; Abilitato ma non attivo</span>
+                            <br><small>(Verifica che WooCommerce sia attivo)</small>
+                        <?php else: ?>
+                            <span style="color:#999;">Disabilitato</span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Commerciante</th>
+                    <td>
+                        <?php echo !empty($rich_results_stats['merchant_name'])
+                            ? esc_html($rich_results_stats['merchant_name'])
+                            : '<em style="color:#d63638;">Non configurato</em>'; ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Paese spedizione</th>
+                    <td><?php echo esc_html($rich_results_stats['shipping_country']); ?></td>
+                </tr>
+                <tr>
+                    <th>Politica reso</th>
+                    <td><?php echo intval($rich_results_stats['return_days']) > 0
+                        ? esc_html($rich_results_stats['return_days']) . ' giorni'
+                        : 'Non configurata'; ?></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Self-Test -->
+        <div class="indexnow-actions-box">
+            <h3>Test Interno</h3>
+            <p>
+                <button type="button" id="btn-rich-results-test" class="button button-primary">
+                    <span class="dashicons dashicons-yes-alt"></span>
+                    Esegui Test Rich Results
+                </button>
+                <span class="description">Verifica la corretta generazione dello schema su un prodotto reale.</span>
+            </p>
+            <div id="rich-results-test-result" style="display:none;"></div>
+        </div>
+    </div>
+    <!-- ==================== FINE RICH RESULTS ==================== -->
+
     <!-- ==================== FORM IMPOSTAZIONI ==================== -->
     <form method="post" action="options.php">
         <?php settings_fields('osg_settings_group'); ?>
@@ -554,6 +630,130 @@ $indexnow_queue = $indexnow->get_queue();
             </table>
         </div>
         
+        <!-- Opzioni Rich Results -->
+        <div class="infobit-settings-section">
+            <h2>&#11088; Opzioni Rich Results</h2>
+            <table class="form-table">
+                <tr>
+                    <th>Abilita Rich Results</th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="osg_rich_results_options[enabled]" value="1" <?php checked(!empty($rich_results_options['enabled'])); ?> <?php echo !class_exists('WooCommerce') ? 'disabled' : ''; ?>>
+                            Aggiungi dati strutturati avanzati ai prodotti WooCommerce
+                        </label>
+                        <?php if (!class_exists('WooCommerce')): ?>
+                            <br><em style="color:#999;">(WooCommerce non attivo)</em>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="rr_merchant_name">Nome commerciante</label></th>
+                    <td>
+                        <input type="text" id="rr_merchant_name" name="osg_rich_results_options[merchant_name]"
+                               value="<?php echo esc_attr($rich_results_options['merchant_name'] ?? ''); ?>" class="regular-text">
+                        <p class="description">Nome dell'organizzazione/negozio (es: "Infobit snc")</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="rr_merchant_url">URL commerciante</label></th>
+                    <td>
+                        <input type="url" id="rr_merchant_url" name="osg_rich_results_options[merchant_url]"
+                               value="<?php echo esc_attr($rich_results_options['merchant_url'] ?? ''); ?>" class="regular-text"
+                               placeholder="https://example.com">
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="rr_shipping_country">Paese spedizione</label></th>
+                    <td>
+                        <input type="text" id="rr_shipping_country" name="osg_rich_results_options[shipping_country]"
+                               value="<?php echo esc_attr($rich_results_options['shipping_country'] ?? 'IT'); ?>" class="small-text"
+                               maxlength="2" style="text-transform:uppercase;">
+                        <p class="description">Codice paese ISO 3166-1 alpha-2 (es: IT, DE, FR, US)</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Tempi di gestione (handling)</th>
+                    <td>
+                        <input type="number" name="osg_rich_results_options[handling_days_min]"
+                               value="<?php echo esc_attr($rich_results_options['handling_days_min'] ?? 0); ?>"
+                               min="0" max="30" class="small-text"> -
+                        <input type="number" name="osg_rich_results_options[handling_days_max]"
+                               value="<?php echo esc_attr($rich_results_options['handling_days_max'] ?? 1); ?>"
+                               min="0" max="30" class="small-text"> giorni
+                        <p class="description">Tempo di preparazione ordine prima della spedizione</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Tempi di transito</th>
+                    <td>
+                        <input type="number" name="osg_rich_results_options[transit_days_min]"
+                               value="<?php echo esc_attr($rich_results_options['transit_days_min'] ?? 1); ?>"
+                               min="0" max="60" class="small-text"> -
+                        <input type="number" name="osg_rich_results_options[transit_days_max]"
+                               value="<?php echo esc_attr($rich_results_options['transit_days_max'] ?? 3); ?>"
+                               min="0" max="60" class="small-text"> giorni
+                        <p class="description">Tempo di consegna del corriere (fallback se WooCommerce non ha dati)</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="rr_return_days">Giorni per il reso</label></th>
+                    <td>
+                        <input type="number" id="rr_return_days" name="osg_rich_results_options[return_days]"
+                               value="<?php echo esc_attr($rich_results_options['return_days'] ?? 14); ?>"
+                               min="0" max="365" class="small-text">
+                        <p class="description">0 = nessuna politica reso nello schema. Standard UE: 14 giorni.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="rr_return_policy_url">URL politica reso</label></th>
+                    <td>
+                        <input type="url" id="rr_return_policy_url" name="osg_rich_results_options[return_policy_url]"
+                               value="<?php echo esc_attr($rich_results_options['return_policy_url'] ?? ''); ?>" class="regular-text"
+                               placeholder="https://example.com/politica-reso/">
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="rr_return_fees">Spese di reso</label></th>
+                    <td>
+                        <select id="rr_return_fees" name="osg_rich_results_options[return_fees]">
+                            <?php foreach ($return_fees_choices as $val => $label): ?>
+                            <option value="<?php echo esc_attr($val); ?>" <?php selected($rich_results_options['return_fees'] ?? '', $val); ?>>
+                                <?php echo esc_html($label); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Recensioni</th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="osg_rich_results_options[include_reviews]" value="1" <?php checked(!empty($rich_results_options['include_reviews'])); ?>>
+                            Includi aggregateRating e recensioni nello schema
+                        </label>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="rr_max_reviews">Max recensioni</label></th>
+                    <td>
+                        <input type="number" id="rr_max_reviews" name="osg_rich_results_options[max_reviews]"
+                               value="<?php echo esc_attr($rich_results_options['max_reviews'] ?? 5); ?>"
+                               min="1" max="20" class="small-text">
+                        <p class="description">Numero massimo di recensioni incluse nello schema per prodotto</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="rr_max_name_length">Lunghezza max nome</label></th>
+                    <td>
+                        <input type="number" id="rr_max_name_length" name="osg_rich_results_options[max_name_length]"
+                               value="<?php echo esc_attr($rich_results_options['max_name_length'] ?? 150); ?>"
+                               min="50" max="500" class="small-text"> caratteri
+                        <p class="description">Google raccomanda max ~150 caratteri per il nome prodotto</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
         <?php submit_button('Salva Impostazioni'); ?>
     </form>
     
