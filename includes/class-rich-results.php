@@ -53,6 +53,7 @@ class OSG_Rich_Results {
             'return_days'        => 14,
             'return_policy_url'  => '',
             'return_fees'        => 'https://schema.org/FreeReturn',
+            'return_shipping_fees_amount' => 0,
             'merchant_name'      => '',
             'merchant_url'       => '',
             'max_name_length'    => 150,
@@ -121,13 +122,22 @@ class OSG_Rich_Results {
         // --- Merchant Return Policy ---
         $return_days = intval($config['return_days']);
         if ($return_days > 0) {
+            $currency = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : 'EUR';
+            $return_fees_type = !empty($config['return_fees']) ? $config['return_fees'] : 'https://schema.org/FreeReturn';
             $return_policy = array(
                 '@type'                => 'MerchantReturnPolicy',
                 'applicableCountry'    => $shipping_data['country'],
                 'returnPolicyCategory' => 'https://schema.org/MerchantReturnFiniteReturnWindow',
                 'merchantReturnDays'   => $return_days,
                 'returnMethod'         => 'https://schema.org/ReturnByMail',
-                'returnFees'           => !empty($config['return_fees']) ? $config['return_fees'] : 'https://schema.org/FreeReturn',
+                'returnFees'           => $return_fees_type,
+                'returnShippingFeesAmount' => array(
+                    '@type'    => 'MonetaryAmount',
+                    'value'    => ($return_fees_type === 'https://schema.org/FreeReturn')
+                        ? 0
+                        : floatval($config['return_shipping_fees_amount'] ?? 0),
+                    'currency' => $currency,
+                ),
             );
             if (!empty($config['return_policy_url'])) {
                 $return_policy['url'] = $config['return_policy_url'];
@@ -596,6 +606,7 @@ class OSG_Rich_Results {
         $s['return_days']       = max(0, absint($input['return_days'] ?? 14));
         $s['return_policy_url'] = esc_url_raw($input['return_policy_url'] ?? '');
         $s['return_fees']       = sanitize_text_field($input['return_fees'] ?? 'https://schema.org/FreeReturn');
+        $s['return_shipping_fees_amount'] = max(0, floatval($input['return_shipping_fees_amount'] ?? 0));
         $s['merchant_name']     = sanitize_text_field($input['merchant_name'] ?? '');
         $s['merchant_url']      = esc_url_raw($input['merchant_url'] ?? '');
         $s['max_name_length']   = max(50, min(500, absint($input['max_name_length'] ?? 150)));

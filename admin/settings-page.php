@@ -725,6 +725,15 @@ $return_fees_choices = array(
                     </td>
                 </tr>
                 <tr>
+                    <th><label for="rr_return_shipping_fees_amount">Costo spedizione reso</label></th>
+                    <td>
+                        <input type="number" id="rr_return_shipping_fees_amount" name="osg_rich_results_options[return_shipping_fees_amount]"
+                               value="<?php echo esc_attr($rich_results_options['return_shipping_fees_amount'] ?? 0); ?>"
+                               min="0" max="999" step="0.01" class="small-text"> &euro;
+                        <p class="description">Importo spese di spedizione per il reso. Se "Reso gratuito" viene usato 0 automaticamente.</p>
+                    </td>
+                </tr>
+                <tr>
                     <th>Recensioni</th>
                     <td>
                         <label>
