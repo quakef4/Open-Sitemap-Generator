@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: Open Sitemap Generator
- * Plugin URI: https://github.com/infobitcomputer/open-sitemap-generator
+ * Plugin URI: https://github.com/quakef4/Open-Sitemap-Generator
  * Description: Genera sitemap XML dinamiche con paginazione automatica, IndexNow a coda temporizzata, Google Rich Results per WooCommerce e notifica Google/Bing/Yandex. Ottimizzato per WooCommerce con decine di migliaia di prodotti.
  * Version: 1.4.0
- * Author: Infobit snc
- * Author URI: https://infobitcomputer.it
+ * Author: quakef4
+ * Author URI: https://github.com/quakef4
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: open-sitemap-generator

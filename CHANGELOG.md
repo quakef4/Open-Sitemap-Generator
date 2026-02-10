@@ -7,6 +7,42 @@ versioned with [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.0] - 2026-02-10
+
+### Added
+- **Google Rich Results module** (`includes/class-rich-results.php`) — Enhances WooCommerce product JSON-LD with structured data for Google Rich Results
+- **shippingDetails** (OfferShippingDetails) — Reads shipping cost from WooCommerce shipping zones (flat rate + free shipping with min amount), configurable delivery times
+- **hasMerchantReturnPolicy** (MerchantReturnPolicy) — Configurable return days, return fees type, return policy URL, `returnShippingFeesAmount`
+- **aggregateRating + review** — Includes product ratings and up to N reviews in schema, with fallback for older WooCommerce comment types
+- **seller** (Organization) — Adds merchant name/URL inside offers
+- **Product name truncation** — Truncates names exceeding configurable max length (default 150 chars, Google recommendation)
+- **Built-in self-test** — Admin button "Esegui Test Rich Results" validates schema generation on a real product, checks all required fields
+- **Full admin settings section** — Merchant info, shipping country, handling/transit times, return policy, review settings, all configurable from dashboard
+- **returnShippingFeesAmount** — MonetaryAmount field in return policy to eliminate Google validator warning
+
+### Fixed
+- **BUG: `hasMerchantReturnPolicy` referenced in offers when not set** — Original code accessed return policy in offers section even when `return_days = 0`. Added `isset()` check
+- **BUG: `date()` instead of `wp_date()`** — Review `datePublished` now uses `wp_date()` for timezone consistency
+- **BUG: WooCommerce review type fallback** — Some WooCommerce versions store reviews as regular comments with `rating` meta instead of `type=review`. Added fallback query
+- **BUG: Empty `reviewBody` in schema** — Now omitted when empty instead of outputting blank string
+- **BUG: Empty `comment_author`** — Falls back to "Anonimo" instead of blank author name
+- **BUG: `aggregateRating` without `review` entries** — If reviews exist in DB but `aggregateRating` was missing from WooCommerce, it's now calculated from found reviews
+
+### Changed
+- Plugin version bumped to 1.4.0
+- Plugin description updated to mention Rich Results
+- Admin JavaScript updated with self-test handler and HTML escaping helper
+- Settings page reorganized with Rich Results status section and settings form
+
+### Technical notes
+- Rich Results module follows existing singleton pattern (`OSG_Rich_Results`)
+- Hooks into `woocommerce_structured_data_product` filter at priority 99
+- Settings stored in `osg_rich_results_options` (separate from main plugin options)
+- Module initializes on `plugins_loaded` at priority 25 (after WooCommerce)
+- Self-test validates: WooCommerce active, merchant configured, return policy URL, schema generation, shippingRate, shippingDestination, deliveryTime, returnPolicy, returnShippingFeesAmount, aggregateRating/review, seller in offers
+
+---
+
 ## [1.3.0] - 2026-02-04
 
 ### Changed
@@ -126,6 +162,7 @@ versioned with [Semantic Versioning](https://semver.org/).
 ## Development Roadmap
 
 ### Planned features
+- [x] Google Rich Results / structured data for WooCommerce products (v1.4.0)
 - [ ] Image sitemap support (`<image:image>` tag)
 - [ ] Video sitemap support
 - [ ] News sitemap support
