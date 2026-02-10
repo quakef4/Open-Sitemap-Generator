@@ -59,6 +59,10 @@ class Open_Sitemap_Generator {
         add_action('admin_init', array($this, 'register_settings'));
         add_action('admin_enqueue_scripts', array($this, 'admin_scripts'));
         
+        // Disabilita la sitemap nativa di WordPress (wp-sitemap.xml)
+        // per evitare duplicazione con la sitemap del plugin (sitemap.xml)
+        add_filter('wp_sitemaps_enabled', '__return_false');
+
         // Rewrite rules per sitemap (con paginazione)
         add_action('init', array($this, 'add_rewrite_rules'));
         add_filter('query_vars', array($this, 'add_query_vars'));
