@@ -133,13 +133,15 @@ class OSG_Rich_Results {
                 'returnFees'           => $return_fees_type,
             );
 
-            // returnShippingFeesAmount solo quando il reso NON e gratuito
-            // Google segnala "Valore non valido" se presente con FreeReturn
-            if ($return_fees_type !== 'https://schema.org/FreeReturn') {
+            // returnShippingFeesAmount solo con ReturnShippingFees
+            // - FreeReturn: nessun costo reso → campo non applicabile
+            // - ReturnFeesCustomerResponsibility: costo variabile a carico del cliente → campo non applicabile
+            // - ReturnShippingFees: costo fisso reso stabilito dal commerciante → serve importo specifico
+            if ($return_fees_type === 'https://schema.org/ReturnShippingFees') {
                 $fees_amount = floatval($config['return_shipping_fees_amount'] ?? 0);
                 $return_policy['returnShippingFeesAmount'] = array(
                     '@type'    => 'MonetaryAmount',
-                    'value'    => $fees_amount,
+                    'value'    => strval($fees_amount),
                     'currency' => $currency,
                 );
             }
@@ -639,22 +641,11 @@ class OSG_Rich_Results {
         // returnShippingFeesAmount check
         if (isset($markup['hasMerchantReturnPolicy'])) {
             $rp_fees = $markup['hasMerchantReturnPolicy']['returnFees'] ?? '';
-            $is_free = ($rp_fees === 'https://schema.org/FreeReturn');
             $has_fees_amount = isset($markup['hasMerchantReturnPolicy']['returnShippingFeesAmount']['@type'])
                 && $markup['hasMerchantReturnPolicy']['returnShippingFeesAmount']['@type'] === 'MonetaryAmount';
 
-            if ($is_free) {
-                // Per FreeReturn, returnShippingFeesAmount NON deve essere presente
-                $pass = !$has_fees_amount;
-                $results[] = array(
-                    'name'   => 'Schema: returnShippingFeesAmount (FreeReturn)',
-                    'pass'   => $pass,
-                    'detail' => $pass
-                        ? 'Reso gratuito: returnShippingFeesAmount correttamente omesso'
-                        : 'Reso gratuito ma returnShippingFeesAmount presente (Google segnala valore non valido)',
-                );
-            } else {
-                // Per altri tipi di reso, returnShippingFeesAmount deve essere presente
+            if ($rp_fees === 'https://schema.org/ReturnShippingFees') {
+                // ReturnShippingFees: costo fisso reso → returnShippingFeesAmount obbligatorio
                 $results[] = array(
                     'name'   => 'Schema: returnShippingFeesAmount valido',
                     'pass'   => $has_fees_amount,
@@ -664,7 +655,18 @@ class OSG_Rich_Results {
                             $markup['hasMerchantReturnPolicy']['returnShippingFeesAmount']['value'],
                             $markup['hasMerchantReturnPolicy']['returnShippingFeesAmount']['currency']
                         )
-                        : 'returnShippingFeesAmount mancante (richiesto per reso non gratuito)',
+                        : 'returnShippingFeesAmount mancante (richiesto con ReturnShippingFees)',
+                );
+            } else {
+                // FreeReturn o ReturnFeesCustomerResponsibility: returnShippingFeesAmount NON deve essere presente
+                $pass = !$has_fees_amount;
+                $label = ($rp_fees === 'https://schema.org/FreeReturn') ? 'Reso gratuito' : 'Spese a carico del cliente';
+                $results[] = array(
+                    'name'   => 'Schema: returnShippingFeesAmount',
+                    'pass'   => $pass,
+                    'detail' => $pass
+                        ? $label . ': returnShippingFeesAmount correttamente omesso'
+                        : $label . ' ma returnShippingFeesAmount presente (Google segnala valore non valido)',
                 );
             }
         }
