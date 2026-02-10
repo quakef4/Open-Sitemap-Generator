@@ -148,8 +148,34 @@ class OSG_Rich_Results {
         // --- Aggregate Rating & Reviews ---
         if (!empty($config['include_reviews'])) {
             $rating_count   = $product->get_rating_count();
-            $average_rating = $product->get_average_rating();
+            $average_rating = floatval($product->get_average_rating());
 
+            // Cerca recensioni: prima tipo 'review' (WC 3.x+), poi fallback a commenti con meta rating
+            $max_reviews = intval($config['max_reviews']);
+            $product_id  = $product->get_id();
+            $reviews     = array();
+
+            if ($rating_count > 0) {
+                $reviews = get_comments(array(
+                    'post_id' => $product_id,
+                    'status'  => 'approve',
+                    'type'    => 'review',
+                    'number'  => $max_reviews,
+                ));
+
+                // Fallback per WooCommerce che salva come commenti normali
+                if (empty($reviews)) {
+                    $reviews = get_comments(array(
+                        'post_id'  => $product_id,
+                        'status'   => 'approve',
+                        'type'     => '',
+                        'meta_key' => 'rating',
+                        'number'   => $max_reviews,
+                    ));
+                }
+            }
+
+            // aggregateRating: serve almeno 1 recensione trovata OPPURE rating_count > 0
             if ($rating_count > 0 && $average_rating > 0) {
                 $markup['aggregateRating'] = array(
                     '@type'       => 'AggregateRating',
@@ -158,34 +184,58 @@ class OSG_Rich_Results {
                     'bestRating'  => '5',
                     'worstRating' => '1',
                 );
+            }
 
-                $reviews = get_comments(array(
-                    'post_id' => $product->get_id(),
-                    'status'  => 'approve',
-                    'type'    => 'review',
-                    'number'  => intval($config['max_reviews']),
-                ));
-
-                if (!empty($reviews)) {
-                    $markup['review'] = array();
-                    foreach ($reviews as $review) {
-                        $rating = get_comment_meta($review->comment_ID, 'rating', true);
-                        $markup['review'][] = array(
-                            '@type'        => 'Review',
-                            'reviewRating' => array(
-                                '@type'       => 'Rating',
-                                'ratingValue' => $rating ? $rating : 5,
-                                'bestRating'  => '5',
-                                'worstRating' => '1',
-                            ),
-                            'author' => array(
-                                '@type' => 'Person',
-                                'name'  => $review->comment_author,
-                            ),
-                            'datePublished' => wp_date('Y-m-d', strtotime($review->comment_date)),
-                            'reviewBody'    => wp_strip_all_tags($review->comment_content),
-                        );
+            // review: aggiunge solo se ci sono recensioni reali trovate
+            if (!empty($reviews)) {
+                $markup['review'] = array();
+                foreach ($reviews as $review) {
+                    $rating = get_comment_meta($review->comment_ID, 'rating', true);
+                    if (!$rating || intval($rating) < 1) {
+                        $rating = 5;
                     }
+                    $author_name = !empty($review->comment_author)
+                        ? $review->comment_author
+                        : __('Anonimo', 'open-sitemap-generator');
+                    $review_body = wp_strip_all_tags($review->comment_content);
+
+                    $review_item = array(
+                        '@type'        => 'Review',
+                        'reviewRating' => array(
+                            '@type'       => 'Rating',
+                            'ratingValue' => intval($rating),
+                            'bestRating'  => '5',
+                            'worstRating' => '1',
+                        ),
+                        'author' => array(
+                            '@type' => 'Person',
+                            'name'  => $author_name,
+                        ),
+                        'datePublished' => wp_date('Y-m-d', strtotime($review->comment_date)),
+                    );
+
+                    // reviewBody solo se presente (Google lo accetta vuoto ma e meglio ometterlo)
+                    if (!empty($review_body)) {
+                        $review_item['reviewBody'] = $review_body;
+                    }
+
+                    $markup['review'][] = $review_item;
+                }
+
+                // Se abbiamo review ma non aggregateRating, calcolalo dalle review trovate
+                if (!isset($markup['aggregateRating']) && !empty($markup['review'])) {
+                    $total = 0;
+                    $count = count($markup['review']);
+                    foreach ($markup['review'] as $r) {
+                        $total += intval($r['reviewRating']['ratingValue']);
+                    }
+                    $markup['aggregateRating'] = array(
+                        '@type'       => 'AggregateRating',
+                        'ratingValue' => round($total / $count, 1),
+                        'reviewCount' => $count,
+                        'bestRating'  => '5',
+                        'worstRating' => '1',
+                    );
                 }
             }
         }
@@ -546,6 +596,60 @@ class OSG_Rich_Results {
                 'detail' => $has_required
                     ? sprintf('Reso entro %d giorni, paese: %s', $rp['merchantReturnDays'], $rp['applicableCountry'])
                     : 'MerchantReturnPolicy incompleto',
+            );
+        }
+
+        // returnShippingFeesAmount check
+        if (isset($markup['hasMerchantReturnPolicy'])) {
+            $has_fees_amount = isset($markup['hasMerchantReturnPolicy']['returnShippingFeesAmount']['@type'])
+                && $markup['hasMerchantReturnPolicy']['returnShippingFeesAmount']['@type'] === 'MonetaryAmount';
+            $results[] = array(
+                'name'   => 'Schema: returnShippingFeesAmount valido',
+                'pass'   => $has_fees_amount,
+                'detail' => $has_fees_amount
+                    ? sprintf(
+                        'Costo reso: %s %s',
+                        $markup['hasMerchantReturnPolicy']['returnShippingFeesAmount']['value'],
+                        $markup['hasMerchantReturnPolicy']['returnShippingFeesAmount']['currency']
+                    )
+                    : 'returnShippingFeesAmount mancante (Google lo raccomanda)',
+            );
+        }
+
+        // aggregateRating & review check
+        $has_rating = isset($markup['aggregateRating']['@type'])
+            && $markup['aggregateRating']['@type'] === 'AggregateRating';
+        $has_reviews = isset($markup['review']) && is_array($markup['review']) && count($markup['review']) > 0;
+        $include_reviews = !empty($this->options['include_reviews']);
+
+        if ($has_rating && $has_reviews) {
+            $results[] = array(
+                'name'   => 'Schema: aggregateRating e review',
+                'pass'   => true,
+                'detail' => sprintf(
+                    'Rating: %s/5 (%d recensioni), %d review nello schema',
+                    $markup['aggregateRating']['ratingValue'],
+                    $markup['aggregateRating']['reviewCount'],
+                    count($markup['review'])
+                ),
+            );
+        } elseif ($has_rating && !$has_reviews) {
+            $results[] = array(
+                'name'   => 'Schema: aggregateRating senza review',
+                'pass'   => true,
+                'detail' => sprintf(
+                    'Rating: %s/5 (%d recensioni) - review non trovate nel DB ma aggregateRating presente',
+                    $markup['aggregateRating']['ratingValue'],
+                    $markup['aggregateRating']['reviewCount']
+                ),
+            );
+        } else {
+            $results[] = array(
+                'name'   => 'Schema: aggregateRating e review',
+                'pass'   => true, // pass=true perche e facoltativo, non un errore
+                'detail' => !$include_reviews
+                    ? 'Recensioni disabilitate nelle impostazioni Rich Results'
+                    : 'Nessuna recensione per questo prodotto (facoltativo per Google, appare come avviso giallo)',
             );
         }
 
