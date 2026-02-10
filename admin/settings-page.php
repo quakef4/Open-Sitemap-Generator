@@ -39,17 +39,18 @@ $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'dashboard';
     </h1>
 
     <!-- ==================== NAVIGAZIONE TAB ==================== -->
+    <?php $base_url = admin_url('options-general.php?page=open-sitemap-generator'); ?>
     <nav class="nav-tab-wrapper osg-tabs">
-        <a href="?page=open-sitemap&tab=dashboard" class="nav-tab <?php echo $active_tab === 'dashboard' ? 'nav-tab-active' : ''; ?>">
+        <a href="<?php echo esc_url($base_url . '&tab=dashboard'); ?>" class="nav-tab <?php echo $active_tab === 'dashboard' ? 'nav-tab-active' : ''; ?>">
             <span class="dashicons dashicons-dashboard"></span> Dashboard
         </a>
-        <a href="?page=open-sitemap&tab=indexnow" class="nav-tab <?php echo $active_tab === 'indexnow' ? 'nav-tab-active' : ''; ?>">
+        <a href="<?php echo esc_url($base_url . '&tab=indexnow'); ?>" class="nav-tab <?php echo $active_tab === 'indexnow' ? 'nav-tab-active' : ''; ?>">
             <span class="dashicons dashicons-controls-forward"></span> IndexNow
         </a>
-        <a href="?page=open-sitemap&tab=richresults" class="nav-tab <?php echo $active_tab === 'richresults' ? 'nav-tab-active' : ''; ?>">
+        <a href="<?php echo esc_url($base_url . '&tab=richresults'); ?>" class="nav-tab <?php echo $active_tab === 'richresults' ? 'nav-tab-active' : ''; ?>">
             <span class="dashicons dashicons-star-filled"></span> Rich Results
         </a>
-        <a href="?page=open-sitemap&tab=settings" class="nav-tab <?php echo $active_tab === 'settings' ? 'nav-tab-active' : ''; ?>">
+        <a href="<?php echo esc_url($base_url . '&tab=settings'); ?>" class="nav-tab <?php echo $active_tab === 'settings' ? 'nav-tab-active' : ''; ?>">
             <span class="dashicons dashicons-admin-generic"></span> Impostazioni
         </a>
     </nav>
