@@ -151,40 +151,52 @@ class OSG_Rich_Results {
 
         // --- Aggregate Rating & Reviews ---
         if (!empty($config['include_reviews'])) {
-            $rating_count   = $product->get_rating_count();
-            $average_rating = floatval($product->get_average_rating());
-
-            // Cerca recensioni: prima tipo 'review' (WC 3.x+), poi fallback a commenti con meta rating
             $max_reviews = intval($config['max_reviews']);
             $product_id  = $product->get_id();
-            $reviews     = array();
 
-            if ($rating_count > 0) {
+            // WooCommerce cached values (possono essere 0 se le recensioni sono state aggiunte manualmente)
+            $wc_rating_count   = $product->get_rating_count();
+            $wc_average_rating = floatval($product->get_average_rating());
+
+            // Cerca recensioni direttamente nel DB — non affidarsi solo al contatore WC cached
+            // Prima tipo 'review' (WC 3.x+), poi fallback a commenti con meta rating
+            $reviews = get_comments(array(
+                'post_id' => $product_id,
+                'status'  => 'approve',
+                'type'    => 'review',
+                'number'  => $max_reviews,
+            ));
+
+            if (empty($reviews)) {
+                $reviews = get_comments(array(
+                    'post_id'  => $product_id,
+                    'status'   => 'approve',
+                    'type'     => '',
+                    'meta_key' => 'rating',
+                    'number'   => $max_reviews,
+                ));
+            }
+
+            // Se non trovate ancora, cerca TUTTI i commenti approvati del prodotto (recensione senza meta rating)
+            if (empty($reviews)) {
                 $reviews = get_comments(array(
                     'post_id' => $product_id,
                     'status'  => 'approve',
-                    'type'    => 'review',
                     'number'  => $max_reviews,
                 ));
-
-                // Fallback per WooCommerce che salva come commenti normali
-                if (empty($reviews)) {
-                    $reviews = get_comments(array(
-                        'post_id'  => $product_id,
-                        'status'   => 'approve',
-                        'type'     => '',
-                        'meta_key' => 'rating',
-                        'number'   => $max_reviews,
-                    ));
-                }
+                // Filtra: tieni solo quelli che hanno contenuto (non pingback/trackback)
+                $reviews = array_filter($reviews, function ($c) {
+                    return !empty($c->comment_content) && !in_array($c->comment_type, array('pingback', 'trackback'), true);
+                });
+                $reviews = array_values($reviews);
             }
 
-            // aggregateRating: serve almeno 1 recensione trovata OPPURE rating_count > 0
-            if ($rating_count > 0 && $average_rating > 0) {
+            // Se WC ha i contatori cached, usali per aggregateRating
+            if ($wc_rating_count > 0 && $wc_average_rating > 0) {
                 $markup['aggregateRating'] = array(
                     '@type'       => 'AggregateRating',
-                    'ratingValue' => $average_rating,
-                    'reviewCount' => $rating_count,
+                    'ratingValue' => $wc_average_rating,
+                    'reviewCount' => $wc_rating_count,
                     'bestRating'  => '5',
                     'worstRating' => '1',
                 );
@@ -226,7 +238,7 @@ class OSG_Rich_Results {
                     $markup['review'][] = $review_item;
                 }
 
-                // Se abbiamo review ma non aggregateRating, calcolalo dalle review trovate
+                // Se abbiamo review ma non aggregateRating (WC cache vuota), calcolalo dalle review trovate
                 if (!isset($markup['aggregateRating']) && !empty($markup['review'])) {
                     $total = 0;
                     $count = count($markup['review']);
@@ -478,6 +490,7 @@ class OSG_Rich_Results {
 
     /**
      * Testa la generazione dello schema su un prodotto reale pubblicato.
+     * Preferisce un prodotto CON recensioni per un test piu completo.
      */
     private function test_schema_generation() {
         if (!class_exists('WooCommerce') || !function_exists('wc_get_products')) {
@@ -488,22 +501,42 @@ class OSG_Rich_Results {
             );
         }
 
-        $products = wc_get_products(array(
-            'status' => 'publish',
-            'limit'  => 1,
-            'orderby' => 'date',
-            'order'   => 'DESC',
-        ));
+        $product = null;
 
-        if (empty($products)) {
+        // Prima cerca un prodotto con recensioni/commenti per un test piu completo
+        global $wpdb;
+        $product_with_reviews_id = $wpdb->get_var(
+            "SELECT p.ID FROM {$wpdb->posts} p
+             INNER JOIN {$wpdb->comments} c ON c.comment_post_ID = p.ID AND c.comment_approved = '1'
+             WHERE p.post_type = 'product' AND p.post_status = 'publish'
+             ORDER BY c.comment_date DESC
+             LIMIT 1"
+        );
+
+        if ($product_with_reviews_id) {
+            $product = wc_get_product($product_with_reviews_id);
+        }
+
+        // Fallback: ultimo prodotto pubblicato
+        if (!$product) {
+            $products = wc_get_products(array(
+                'status'  => 'publish',
+                'limit'   => 1,
+                'orderby' => 'date',
+                'order'   => 'DESC',
+            ));
+            if (!empty($products)) {
+                $product = $products[0];
+            }
+        }
+
+        if (!$product) {
             return array(
                 'name'   => 'Generazione schema prodotto',
                 'pass'   => false,
                 'detail' => 'Nessun prodotto pubblicato trovato per il test',
             );
         }
-
-        $product = $products[0];
 
         // Simula markup base come lo genererebbe WooCommerce
         $mock_markup = array(

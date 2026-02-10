@@ -1,7 +1,7 @@
 <?php
 /**
- * Pagina impostazioni admin per Open Sitemap
- * Versione 1.2.0 con paginazione, Google ping, coda temporizzata
+ * Pagina impostazioni admin per Open Sitemap Generator
+ * Versione 1.4.0 — Layout a tab
  */
 
 if (!defined('ABSPATH')) exit;
@@ -27,6 +27,8 @@ $return_fees_choices = array(
     'https://schema.org/ReturnShippingFees'        => 'Spese di spedizione a carico del cliente',
     'https://schema.org/ReturnFeesCustomerResponsibility' => 'Spese reso a carico del cliente',
 );
+
+$active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'dashboard';
 ?>
 
 <div class="wrap osg-wrap">
@@ -35,7 +37,26 @@ $return_fees_choices = array(
         Open Sitemap Generator
         <span class="version">v<?php echo OSG_VERSION; ?></span>
     </h1>
-    
+
+    <!-- ==================== NAVIGAZIONE TAB ==================== -->
+    <nav class="nav-tab-wrapper osg-tabs">
+        <a href="?page=open-sitemap&tab=dashboard" class="nav-tab <?php echo $active_tab === 'dashboard' ? 'nav-tab-active' : ''; ?>">
+            <span class="dashicons dashicons-dashboard"></span> Dashboard
+        </a>
+        <a href="?page=open-sitemap&tab=indexnow" class="nav-tab <?php echo $active_tab === 'indexnow' ? 'nav-tab-active' : ''; ?>">
+            <span class="dashicons dashicons-controls-forward"></span> IndexNow
+        </a>
+        <a href="?page=open-sitemap&tab=richresults" class="nav-tab <?php echo $active_tab === 'richresults' ? 'nav-tab-active' : ''; ?>">
+            <span class="dashicons dashicons-star-filled"></span> Rich Results
+        </a>
+        <a href="?page=open-sitemap&tab=settings" class="nav-tab <?php echo $active_tab === 'settings' ? 'nav-tab-active' : ''; ?>">
+            <span class="dashicons dashicons-admin-generic"></span> Impostazioni
+        </a>
+    </nav>
+
+    <!-- ==================== TAB: DASHBOARD ==================== -->
+    <?php if ($active_tab === 'dashboard'): ?>
+
     <!-- Statistiche -->
     <div class="infobit-stats-grid">
         <div class="stat-card">
@@ -67,11 +88,11 @@ $return_fees_choices = array(
             </div>
         </div>
     </div>
-    
+
     <!-- Riepilogo Sitemap -->
     <div class="infobit-sitemap-links">
-        <h2>🗂️ Struttura Sitemap</h2>
-        
+        <h2>Struttura Sitemap</h2>
+
         <div class="sitemap-summary">
             <p>
                 <strong>URL totali:</strong> <?php echo number_format_i18n($stats['total_urls']); ?> |
@@ -80,12 +101,12 @@ $return_fees_choices = array(
             </p>
             <?php if ($stats['products'] > $stats['max_urls_per_file']): ?>
             <p class="description">
-                ℹ️ I prodotti sono suddivisi in <strong><?php echo ceil($stats['products'] / $stats['max_urls_per_file']); ?> file sitemap</strong> 
+                I prodotti sono suddivisi in <strong><?php echo ceil($stats['products'] / $stats['max_urls_per_file']); ?> file sitemap</strong>
                 per rispettare il limite di <?php echo number_format_i18n($stats['max_urls_per_file']); ?> URL per file.
             </p>
             <?php endif; ?>
         </div>
-        
+
         <table class="widefat">
             <thead>
                 <tr>
@@ -97,14 +118,14 @@ $return_fees_choices = array(
             </thead>
             <tbody>
                 <tr>
-                    <td><strong>📋 Index</strong></td>
+                    <td><strong>Index</strong></td>
                     <td><code><?php echo esc_url(home_url('/sitemap.xml')); ?></code></td>
                     <td>Indice di tutte le sitemap</td>
-                    <td><a href="<?php echo esc_url(home_url('/sitemap.xml')); ?>" target="_blank" class="button button-small">Apri ↗</a></td>
+                    <td><a href="<?php echo esc_url(home_url('/sitemap.xml')); ?>" target="_blank" class="button button-small">Apri</a></td>
                 </tr>
                 <?php
                 $max_url = $stats['max_urls_per_file'];
-                
+
                 // Pagine
                 if (!empty($options['include_pages'])):
                     $page_files = max(1, ceil($stats['pages'] / $max_url));
@@ -114,10 +135,10 @@ $return_fees_choices = array(
                     <td>Pagine<?php echo $page_files > 1 ? " ({$i}/{$page_files})" : ''; ?></td>
                     <td><code><?php echo esc_url(home_url("/sitemap-pages-{$i}.xml")); ?></code></td>
                     <td><?php echo min($stats['pages'] - ($i-1)*$max_url, $max_url); ?> URL</td>
-                    <td><a href="<?php echo esc_url(home_url("/sitemap-pages-{$i}.xml")); ?>" target="_blank" class="button button-small">Apri ↗</a></td>
+                    <td><a href="<?php echo esc_url(home_url("/sitemap-pages-{$i}.xml")); ?>" target="_blank" class="button button-small">Apri</a></td>
                 </tr>
                 <?php endfor; endif; ?>
-                
+
                 <?php
                 // Prodotti
                 if (!empty($options['include_products']) && $stats['products'] > 0):
@@ -129,25 +150,25 @@ $return_fees_choices = array(
                     <td>Prodotti<?php echo $prod_files > 1 ? " ({$i}/{$prod_files})" : ''; ?></td>
                     <td><code><?php echo esc_url(home_url("/sitemap-products-{$i}.xml")); ?></code></td>
                     <td><?php echo number_format_i18n($urls_in_file); ?> URL</td>
-                    <td><a href="<?php echo esc_url(home_url("/sitemap-products-{$i}.xml")); ?>" target="_blank" class="button button-small">Apri ↗</a></td>
+                    <td><a href="<?php echo esc_url(home_url("/sitemap-products-{$i}.xml")); ?>" target="_blank" class="button button-small">Apri</a></td>
                 </tr>
                 <?php endfor; endif; ?>
-                
+
                 <?php if (!empty($options['include_categories']) || !empty($options['include_product_categories'])): ?>
                 <tr>
                     <td>Categorie</td>
                     <td><code><?php echo esc_url(home_url('/sitemap-categories-1.xml')); ?></code></td>
                     <td><?php echo esc_html($stats['categories'] + $stats['product_cats']); ?> URL</td>
-                    <td><a href="<?php echo esc_url(home_url('/sitemap-categories-1.xml')); ?>" target="_blank" class="button button-small">Apri ↗</a></td>
+                    <td><a href="<?php echo esc_url(home_url('/sitemap-categories-1.xml')); ?>" target="_blank" class="button button-small">Apri</a></td>
                 </tr>
                 <?php endif; ?>
             </tbody>
         </table>
     </div>
-    
+
     <!-- Azioni Rapide -->
     <div class="infobit-actions">
-        <h2>⚡ Azioni Rapide</h2>
+        <h2>Azioni Rapide</h2>
         <p>
             <button type="button" id="btn-regenerate" class="button button-primary button-hero">
                 <span class="dashicons dashicons-update"></span>
@@ -159,14 +180,14 @@ $return_fees_choices = array(
             </button>
         </p>
         <div id="action-result" class="notice" style="display:none;"></div>
-        
+
         <div class="infobit-last-update">
             <p>
-                <strong>Ultima generazione:</strong> 
+                <strong>Ultima generazione:</strong>
                 <span id="last-generated"><?php echo $stats['last_generated'] ? esc_html(wp_date('d/m/Y H:i:s', strtotime($stats['last_generated']))) : 'Mai'; ?></span>
             </p>
             <p>
-                <strong>Ultimo ping Google:</strong> 
+                <strong>Ultimo ping Google:</strong>
                 <?php echo $stats['last_google_ping'] ? esc_html(wp_date('d/m/Y H:i:s', strtotime($stats['last_google_ping']))) : 'Mai'; ?>
                 <?php if (!empty($stats['last_google_ping_status'])): ?>
                     — <em><?php echo esc_html($stats['last_google_ping_status']); ?></em>
@@ -174,36 +195,66 @@ $return_fees_choices = array(
             </p>
         </div>
     </div>
-    
-    <!-- ==================== SEZIONE GOOGLE ==================== -->
+
+    <!-- Google Info -->
     <div class="infobit-settings-section google-section">
-        <h2>🔍 Google - Notifica Sitemap</h2>
-        
+        <h2>Google - Notifica Sitemap</h2>
         <div class="google-info-banner">
             <p><strong>Come Google scopre la tua sitemap:</strong></p>
             <ul style="margin:5px 0 0 20px;">
-                <li>✅ <strong>robots.txt</strong> — Il plugin aggiunge automaticamente <code>Sitemap: <?php echo esc_html(home_url('/sitemap.xml')); ?></code></li>
-                <li>✅ <strong>Google Search Console</strong> — Registra la sitemap manualmente una volta</li>
-                <li>✅ <strong>Crawling automatico</strong> — Google visita la sitemap regolarmente</li>
-                <li>⚠️ <strong>Ping sitemap</strong> — Deprecato da Google (giugno 2023), ma il plugin lo tenta comunque</li>
+                <li><strong>robots.txt</strong> — Il plugin aggiunge automaticamente <code>Sitemap: <?php echo esc_html(home_url('/sitemap.xml')); ?></code></li>
+                <li><strong>Google Search Console</strong> — Registra la sitemap manualmente una volta</li>
+                <li><strong>Ping sitemap</strong> — Deprecato da Google (giugno 2023), ma il plugin lo tenta comunque</li>
             </ul>
-            <p style="margin-top:10px;"><strong>⚠️ Google NON supporta IndexNow.</strong> IndexNow funziona solo per Bing e Yandex. 
-            Per Google il metodo principale resta la sitemap in robots.txt + Search Console.</p>
+            <p style="margin-top:10px;"><strong>Google NON supporta IndexNow.</strong> Per Google il metodo principale resta la sitemap in robots.txt + Search Console.</p>
         </div>
     </div>
-    
-    <!-- ==================== SEZIONE INDEXNOW ==================== -->
+
+    <!-- Riepilogo Notifiche -->
+    <div class="infobit-info-box">
+        <h2>Riepilogo Notifiche Motori di Ricerca</h2>
+        <table class="widefat" style="max-width:600px;">
+            <thead>
+                <tr>
+                    <th>Motore</th>
+                    <th>Metodo</th>
+                    <th>Stato</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Google</strong></td>
+                    <td>robots.txt + Search Console</td>
+                    <td>Automatico (robots.txt)</td>
+                </tr>
+                <tr>
+                    <td><strong>Bing</strong></td>
+                    <td>IndexNow (coda temporizzata)</td>
+                    <td><?php echo !empty($indexnow_options['enabled']) ? 'Attivo' : 'Disabilitato'; ?></td>
+                </tr>
+                <tr>
+                    <td><strong>Yandex</strong></td>
+                    <td>IndexNow (condiviso da Bing)</td>
+                    <td><?php echo !empty($indexnow_options['enabled']) ? 'Attivo' : 'Disabilitato'; ?></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ==================== TAB: INDEXNOW ==================== -->
+    <?php elseif ($active_tab === 'indexnow'): ?>
+
     <div class="infobit-settings-section indexnow-section">
-        <h2>🚀 IndexNow - Notifica Istantanea a Bing/Yandex</h2>
-        
+        <h2>IndexNow - Notifica Istantanea a Bing/Yandex</h2>
+
         <div class="indexnow-info-banner">
             <p><strong>IndexNow</strong> notifica istantaneamente Bing e Yandex quando modifichi contenuti.
             Gli URL vengono accodati e inviati in batch per non rallentare il sito.</p>
         </div>
-        
+
         <!-- Stato IndexNow -->
         <div class="indexnow-status">
-            <h3>📊 Stato</h3>
+            <h3>Stato</h3>
             <table class="form-table">
                 <tr>
                     <th>Chiave API</th>
@@ -230,10 +281,10 @@ $return_fees_choices = array(
                 </tr>
             </table>
         </div>
-        
+
         <!-- Coda URL -->
         <div class="indexnow-queue-box">
-            <h3>📋 Coda URL in Attesa</h3>
+            <h3>Coda URL in Attesa</h3>
             <table class="form-table">
                 <tr>
                     <th>URL in coda</th>
@@ -247,14 +298,14 @@ $return_fees_choices = array(
                     </td>
                 </tr>
                 <tr>
-                    <th>Modalità invio</th>
+                    <th>Modalita invio</th>
                     <td>
                         <?php
                         $mode_labels = array(
-                            'immediate'  => '⚡ Immediato (ogni modifica)',
-                            'hourly'     => '🕐 Ogni ora',
-                            'twicedaily' => '🕐 Ogni 12 ore',
-                            'daily'      => '🕐 Ogni 24 ore',
+                            'immediate'  => 'Immediato (ogni modifica)',
+                            'hourly'     => 'Ogni ora',
+                            'twicedaily' => 'Ogni 12 ore',
+                            'daily'      => 'Ogni 24 ore',
                         );
                         echo esc_html($mode_labels[$indexnow_stats['queue_mode']] ?? $indexnow_stats['queue_mode']);
                         ?>
@@ -267,7 +318,7 @@ $return_fees_choices = array(
                 </tr>
                 <?php endif; ?>
             </table>
-            
+
             <?php if ($indexnow_stats['queue_count'] > 0): ?>
             <div class="queue-actions">
                 <button type="button" id="btn-process-queue" class="button button-primary">
@@ -279,13 +330,13 @@ $return_fees_choices = array(
                     Svuota Coda
                 </button>
             </div>
-            
+
             <div class="queue-preview">
                 <h4>Ultimi URL in coda:</h4>
                 <ul>
-                    <?php 
+                    <?php
                     $preview_queue = array_slice($indexnow_queue, 0, 5);
-                    foreach ($preview_queue as $item): 
+                    foreach ($preview_queue as $item):
                     ?>
                     <li>
                         <code><?php echo esc_html($item['url']); ?></code>
@@ -298,13 +349,13 @@ $return_fees_choices = array(
                 </ul>
             </div>
             <?php endif; ?>
-            
+
             <div id="queue-result" class="notice" style="display:none;"></div>
         </div>
-        
+
         <!-- Invio Massivo -->
         <div class="indexnow-actions-box">
-            <h3>⚡ Invio Massivo</h3>
+            <h3>Invio Massivo</h3>
             <p>
                 <button type="button" id="btn-indexnow-bulk" class="button button-primary">
                     <span class="dashicons dashicons-upload"></span>
@@ -314,11 +365,11 @@ $return_fees_choices = array(
             </p>
             <div id="indexnow-result" class="notice" style="display:none;"></div>
         </div>
-        
+
         <!-- Log -->
         <?php if (!empty($indexnow_log)): ?>
         <div class="indexnow-log">
-            <h3>📜 Log Recenti</h3>
+            <h3>Log Recenti</h3>
             <table class="widefat striped">
                 <thead>
                     <tr>
@@ -338,11 +389,12 @@ $return_fees_choices = array(
         </div>
         <?php endif; ?>
     </div>
-    <!-- ==================== FINE INDEXNOW ==================== -->
-    
-    <!-- ==================== SEZIONE RICH RESULTS ==================== -->
+
+    <!-- ==================== TAB: RICH RESULTS ==================== -->
+    <?php elseif ($active_tab === 'richresults'): ?>
+
     <div class="infobit-settings-section rich-results-section">
-        <h2>&#11088; Rich Results - Dati Strutturati Prodotti</h2>
+        <h2>Rich Results - Dati Strutturati Prodotti</h2>
 
         <div class="google-info-banner">
             <p><strong>Google Rich Results</strong> migliora la visibilita dei prodotti WooCommerce nei risultati di ricerca
@@ -403,14 +455,15 @@ $return_fees_choices = array(
             <div id="rich-results-test-result" style="display:none;"></div>
         </div>
     </div>
-    <!-- ==================== FINE RICH RESULTS ==================== -->
 
-    <!-- ==================== FORM IMPOSTAZIONI ==================== -->
+    <!-- ==================== TAB: IMPOSTAZIONI ==================== -->
+    <?php elseif ($active_tab === 'settings'): ?>
+
     <form method="post" action="options.php">
         <?php settings_fields('osg_settings_group'); ?>
-        
+
         <div class="infobit-settings-section">
-            <h2>📄 Contenuti da Includere</h2>
+            <h2>Contenuti da Includere</h2>
             <table class="form-table">
                 <tr>
                     <th>Tipi di contenuto</th>
@@ -448,14 +501,14 @@ $return_fees_choices = array(
                 </tr>
             </table>
         </div>
-        
+
         <div class="infobit-settings-section">
-            <h2>🚫 Esclusioni</h2>
+            <h2>Esclusioni</h2>
             <table class="form-table">
                 <tr>
                     <th><label for="exclude_ids">Escludi per ID</label></th>
                     <td>
-                        <input type="text" id="exclude_ids" name="osg_options[exclude_ids]" 
+                        <input type="text" id="exclude_ids" name="osg_options[exclude_ids]"
                                value="<?php echo esc_attr($options['exclude_ids'] ?? ''); ?>" class="regular-text">
                         <p class="description">ID separati da virgola (es: 123, 456, 789)</p>
                     </td>
@@ -463,16 +516,16 @@ $return_fees_choices = array(
                 <tr>
                     <th><label for="exclude_urls">Escludi per URL</label></th>
                     <td>
-                        <textarea id="exclude_urls" name="osg_options[exclude_urls]" 
+                        <textarea id="exclude_urls" name="osg_options[exclude_urls]"
                                   rows="5" class="large-text code"><?php echo esc_textarea($options['exclude_urls'] ?? ''); ?></textarea>
                         <p class="description">Un pattern per riga.</p>
                     </td>
                 </tr>
             </table>
         </div>
-        
+
         <div class="infobit-settings-section">
-            <h2>📊 Priorità Sitemap</h2>
+            <h2>Priorita Sitemap</h2>
             <table class="form-table">
                 <?php
                 $priorities = array(
@@ -497,9 +550,9 @@ $return_fees_choices = array(
                 <?php endforeach; ?>
             </table>
         </div>
-        
+
         <div class="infobit-settings-section">
-            <h2>⚙️ Opzioni Generali</h2>
+            <h2>Opzioni Generali</h2>
             <table class="form-table">
                 <tr>
                     <th>Aggiornamento automatico</th>
@@ -517,24 +570,24 @@ $return_fees_choices = array(
                             <input type="checkbox" name="osg_options[ping_google_on_change]" value="1" <?php checked(!empty($options['ping_google_on_change'])); ?>>
                             Invia ping a Google quando i contenuti cambiano
                         </label>
-                        <p class="description">Google ha deprecato il ping sitemap (giugno 2023), ma il plugin tenta comunque. Il metodo principale resta robots.txt + Search Console.</p>
+                        <p class="description">Google ha deprecato il ping sitemap (giugno 2023), ma il plugin tenta comunque.</p>
                     </td>
                 </tr>
                 <tr>
                     <th>Max URL per file sitemap</th>
                     <td>
-                        <input type="number" name="osg_options[max_urls_per_sitemap]" 
-                               value="<?php echo esc_attr($options['max_urls_per_sitemap'] ?? OSG_MAX_URLS_PER_SITEMAP); ?>" 
+                        <input type="number" name="osg_options[max_urls_per_sitemap]"
+                               value="<?php echo esc_attr($options['max_urls_per_sitemap'] ?? OSG_MAX_URLS_PER_SITEMAP); ?>"
                                min="1000" max="50000" step="1000" class="small-text">
-                        <p class="description">Standard: max 50.000. Raccomandato: 10.000 per performance. Con <?php echo number_format_i18n($stats['products']); ?> prodotti = <?php echo ceil($stats['products'] / ($options['max_urls_per_sitemap'] ?? OSG_MAX_URLS_PER_SITEMAP)); ?> file sitemap prodotti.</p>
+                        <p class="description">Standard: max 50.000. Raccomandato: 10.000 per performance.</p>
                     </td>
                 </tr>
             </table>
         </div>
-        
+
         <!-- Opzioni IndexNow -->
         <div class="infobit-settings-section">
-            <h2>🚀 Opzioni IndexNow</h2>
+            <h2>Opzioni IndexNow</h2>
             <table class="form-table">
                 <tr>
                     <th>Abilita IndexNow</th>
@@ -565,25 +618,15 @@ $return_fees_choices = array(
                     </td>
                 </tr>
                 <tr>
-                    <th>Modalità invio</th>
+                    <th>Modalita invio</th>
                     <td>
                         <select name="osg_indexnow_options[queue_mode]">
-                            <option value="immediate" <?php selected($indexnow_options['queue_mode'] ?? 'hourly', 'immediate'); ?>>
-                                ⚡ Immediato (ogni modifica)
-                            </option>
-                            <option value="hourly" <?php selected($indexnow_options['queue_mode'] ?? 'hourly', 'hourly'); ?>>
-                                🕐 Ogni ora (raccomandato)
-                            </option>
-                            <option value="twicedaily" <?php selected($indexnow_options['queue_mode'] ?? 'hourly', 'twicedaily'); ?>>
-                                🕐 Ogni 12 ore
-                            </option>
-                            <option value="daily" <?php selected($indexnow_options['queue_mode'] ?? 'hourly', 'daily'); ?>>
-                                🕐 Una volta al giorno
-                            </option>
+                            <option value="immediate" <?php selected($indexnow_options['queue_mode'] ?? 'hourly', 'immediate'); ?>>Immediato (ogni modifica)</option>
+                            <option value="hourly" <?php selected($indexnow_options['queue_mode'] ?? 'hourly', 'hourly'); ?>>Ogni ora (raccomandato)</option>
+                            <option value="twicedaily" <?php selected($indexnow_options['queue_mode'] ?? 'hourly', 'twicedaily'); ?>>Ogni 12 ore</option>
+                            <option value="daily" <?php selected($indexnow_options['queue_mode'] ?? 'hourly', 'daily'); ?>>Una volta al giorno</option>
                         </select>
-                        <p class="description">
-                            <strong>Raccomandato: "Ogni ora"</strong> per e-commerce con aggiornamenti frequenti di magazzino.
-                        </p>
+                        <p class="description"><strong>Raccomandato: "Ogni ora"</strong> per e-commerce con aggiornamenti frequenti di magazzino.</p>
                     </td>
                 </tr>
                 <tr>
@@ -593,17 +636,14 @@ $return_fees_choices = array(
                             <input type="checkbox" name="osg_indexnow_options[exclude_stock_updates]" value="1" <?php checked(!empty($indexnow_options['exclude_stock_updates'])); ?>>
                             <strong>Escludi aggiornamenti solo stock</strong>
                         </label>
-                        <p class="description">
-                            Non accodare quando cambiano solo quantità, stato stock.<br>
-                            Accoda solo se cambiano: titolo, descrizione, prezzo, SKU.
-                        </p>
+                        <p class="description">Non accodare quando cambiano solo quantita, stato stock. Accoda solo se cambiano: titolo, descrizione, prezzo, SKU.</p>
                     </td>
                 </tr>
                 <tr>
                     <th>Dimensione batch</th>
                     <td>
-                        <input type="number" name="osg_indexnow_options[batch_size]" 
-                               value="<?php echo esc_attr($indexnow_options['batch_size'] ?? 100); ?>" 
+                        <input type="number" name="osg_indexnow_options[batch_size]"
+                               value="<?php echo esc_attr($indexnow_options['batch_size'] ?? 100); ?>"
                                min="10" max="10000" step="10" class="small-text">
                         <span class="description">URL per invio (default: 100)</span>
                     </td>
@@ -619,20 +659,20 @@ $return_fees_choices = array(
                     </td>
                 </tr>
                 <tr>
-                    <th>Log attività</th>
+                    <th>Log attivita</th>
                     <td>
                         <label>
                             <input type="checkbox" name="osg_indexnow_options[log_enabled]" value="1" <?php checked(!empty($indexnow_options['log_enabled'])); ?>>
-                            Registra attività IndexNow
+                            Registra attivita IndexNow
                         </label>
                     </td>
                 </tr>
             </table>
         </div>
-        
+
         <!-- Opzioni Rich Results -->
         <div class="infobit-settings-section">
-            <h2>&#11088; Opzioni Rich Results</h2>
+            <h2>Opzioni Rich Results</h2>
             <table class="form-table">
                 <tr>
                     <th>Abilita Rich Results</th>
@@ -651,7 +691,7 @@ $return_fees_choices = array(
                     <td>
                         <input type="text" id="rr_merchant_name" name="osg_rich_results_options[merchant_name]"
                                value="<?php echo esc_attr($rich_results_options['merchant_name'] ?? ''); ?>" class="regular-text">
-                        <p class="description">Nome dell'organizzazione/negozio (es: "Infobit snc")</p>
+                        <p class="description">Nome dell'organizzazione/negozio</p>
                     </td>
                 </tr>
                 <tr>
@@ -765,35 +805,6 @@ $return_fees_choices = array(
 
         <?php submit_button('Salva Impostazioni'); ?>
     </form>
-    
-    <!-- Info -->
-    <div class="infobit-info-box">
-        <h2>📋 Riepilogo Notifiche Motori di Ricerca</h2>
-        <table class="widefat" style="max-width:600px;">
-            <thead>
-                <tr>
-                    <th>Motore</th>
-                    <th>Metodo</th>
-                    <th>Stato</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>Google</strong></td>
-                    <td>robots.txt + Search Console</td>
-                    <td>✅ Automatico (robots.txt)</td>
-                </tr>
-                <tr>
-                    <td><strong>Bing</strong></td>
-                    <td>IndexNow (coda temporizzata)</td>
-                    <td><?php echo !empty($indexnow_options['enabled']) ? '✅ Attivo' : '❌ Disabilitato'; ?></td>
-                </tr>
-                <tr>
-                    <td><strong>Yandex</strong></td>
-                    <td>IndexNow (condiviso da Bing)</td>
-                    <td><?php echo !empty($indexnow_options['enabled']) ? '✅ Attivo' : '❌ Disabilitato'; ?></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+
+    <?php endif; ?>
 </div>
