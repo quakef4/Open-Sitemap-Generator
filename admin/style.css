@@ -1,5 +1,5 @@
 /**
- * Stile Admin - Open Sitemap Generator v1.2.0
+ * Stile Admin - Open Sitemap Generator v1.4.0
  */
 
 .osg-wrap {
@@ -11,7 +11,30 @@
     align-items: center;
     gap: 10px;
     font-size: 23px;
+    margin-bottom: 15px;
+}
+
+/* Tab Navigation */
+.osg-tabs {
     margin-bottom: 20px;
+}
+
+.osg-tabs .nav-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 16px;
+}
+
+.osg-tabs .nav-tab .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+.osg-tabs .nav-tab-active {
+    background: #fff;
+    border-bottom-color: #fff;
 }
 
 .osg-wrap h1 .dashicons {
@@ -241,6 +264,10 @@
 
 .indexnow-section {
     border-left: 4px solid #0073aa;
+}
+
+.rich-results-section {
+    border-left: 4px solid #ff9800;
 }
 
 .indexnow-info-banner {

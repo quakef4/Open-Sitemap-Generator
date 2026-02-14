@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: Open Sitemap Generator
- * Plugin URI: https://github.com/infobitcomputer/open-sitemap-generator
- * Description: Genera sitemap XML dinamiche con paginazione automatica, IndexNow a coda temporizzata e notifica Google/Bing/Yandex. Ottimizzato per WooCommerce con decine di migliaia di prodotti.
- * Version: 1.3.0
- * Author: Infobit snc
- * Author URI: https://infobitcomputer.it
+ * Plugin URI: https://github.com/quakef4/Open-Sitemap-Generator
+ * Description: Genera sitemap XML dinamiche con paginazione automatica, IndexNow a coda temporizzata, Google Rich Results per WooCommerce e notifica Google/Bing/Yandex. Ottimizzato per WooCommerce con decine di migliaia di prodotti.
+ * Version: 1.4.0
+ * Author: quakef4
+ * Author URI: https://github.com/quakef4
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: open-sitemap-generator
@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('OSG_VERSION', '1.3.0');
+define('OSG_VERSION', '1.4.0');
 define('OSG_PATH', plugin_dir_path(__FILE__));
 define('OSG_URL', plugin_dir_url(__FILE__));
 define('OSG_BASENAME', plugin_basename(__FILE__));
@@ -59,6 +59,10 @@ class Open_Sitemap_Generator {
         add_action('admin_init', array($this, 'register_settings'));
         add_action('admin_enqueue_scripts', array($this, 'admin_scripts'));
         
+        // Disabilita la sitemap nativa di WordPress (wp-sitemap.xml)
+        // per evitare duplicazione con la sitemap del plugin (sitemap.xml)
+        add_filter('wp_sitemaps_enabled', '__return_false');
+
         // Rewrite rules per sitemap (con paginazione)
         add_action('init', array($this, 'add_rewrite_rules'));
         add_filter('query_vars', array($this, 'add_query_vars'));
@@ -665,3 +669,6 @@ add_action('plugins_loaded', function() {
 
 // Carica IndexNow
 require_once OSG_PATH . 'includes/class-indexnow.php';
+
+// Carica Rich Results (Schema Enhancement per Google)
+require_once OSG_PATH . 'includes/class-rich-results.php';
